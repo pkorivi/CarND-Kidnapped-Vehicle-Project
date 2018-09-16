@@ -92,12 +92,53 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+	
+	for(auto &particle : particles)
+	{
+		//Bringing map land marks  into Landmarkobs coordinate format
+		std::vector<LandmarkObs> land_mark_obs;
+		for(auto lm : map_landmarks.landmark_list){
+			//checking if the values are in range
+			if((fabs(lm.x_f - particle.x) <= sensor_range) && (fabs(lm.y_f - particle.y) <= sensor_range)){
+				land_mark_obs.push_back(LandmarkObs{lm.id_i,lm.x_f,lm.y_f});
+			}
+		}
+		//
+		std::vector<LandmarkObs> transformed_obs;
+		for(auto obs : observations){
+			double xmap = particle.x + cos(particle.theta)*obs.x - sin(particle.theta)*obs.y;
+			double ymap = particle.y + sin(particle.theta)*obs.x + cos(particle.theta)*obs.y;
+			transformed_obs.push_back(LandmarkObs{obs.id,xmap,ymap});
+		}
+
+		//Set associations between sensor observations and map lanmarks
+		dataAssociation(land_mark_obs,transformed_obs);
+
+		particle.weight = 1.0;
+		double as_x,as_y;
+		for(auto obs : transformed_obs){
+			for(auto lm : land_mark_obs){
+				if(obs.id == lm.id){
+					as_x = lm.x;
+					as_y = lm.y;
+					break;
+				}
+			}
+			double std_x = std_landmark[0];
+			double std_y = std_landmark[1];
+			//observations weight
+			double obs_wt = (1/(2*M_PI*std_x*std_y))* exp(-(pow(as_x - obs.x, 2) / (2 * pow(std_x, 2)) + (pow(as_y - obs.y, 2) / (2 * pow(std_y, 2)))));
+			particle.weight *= obs_wt;
+		}
+	}
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+	
 
 }
 
