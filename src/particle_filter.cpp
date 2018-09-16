@@ -24,28 +24,20 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-	num_particles = 100;
-	weights = vector<double>(num_particles);
-	fill(weights.begin(), weights.end(), 0);
-	particles = vector<Particle>(num_particles);
-	Particle part;
-	part.x = x;
-	part.y = y;
-	part.theta = theta;
-	fill(particles.begin(),particles.end(),part);
-	// Create normal distribution of noise parameters
+	num_particles = 20;
 	default_random_engine gen;
-	normal_distribution<double> dist_x(0, std[0]);
-	normal_distribution<double> dist_y(0, std[1]);
-	normal_distribution<double> dist_theta(0, std[2]);
-	int i=0;
-	for(auto &particle : particles)
-	{
-		particle.id = i++;
-		particle.x +=  dist_x(gen);
-		particle.y +=  dist_y(gen);
-		particle.theta +=  dist_theta(gen);
-		particle.weight = 1.0;
+	normal_distribution<double> dist_x(x, std[0]);
+	normal_distribution<double> dist_y(y, std[1]);
+	normal_distribution<double> dist_theta(theta, std[2]);
+	for(int i =0;i<num_particles;i++){
+		Particle part;
+		part.id = i;
+		part.x = dist_x(gen);
+		part.y = dist_y(gen);
+		part.theta = dist_theta(gen);
+		part.weight = 1.0;
+		particles.push_back(part);
+		weights.push_back(1.0);
 	}
 	is_initialized = true;
 }
@@ -151,6 +143,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 			double norm_fact = 1/(2*M_PI*std_x*std_y);
 			double exponent = (pow(as_x - obs.x, 2) / (2 * pow(std_x, 2)) + (pow(as_y - obs.y, 2) / (2 * pow(std_y, 2))));
 			double obs_wt = norm_fact*exp(-exponent);
+			//check to see that the values dont go too low
 			if(obs_wt < 0.000001){
 				particle.weight *=0.000001;	
 			}
